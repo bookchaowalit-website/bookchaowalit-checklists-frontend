@@ -27,7 +27,7 @@ export async function getAllChecklists() {
       return {
         ...data,
         id: file.replace('.mdx', ''),
-        items: parseItems(fileContent),
+        items: normalizeItems(data.items, fileContent),
         slug: file.replace('.mdx', ''),
         created_at: new Date().toISOString()
       } as ChecklistItem;
@@ -50,7 +50,7 @@ export async function getChecklistBySlug(slug: string) {
     return {
       ...data,
       id: slug,
-      items: parseItems(fileContent),
+      items: normalizeItems(data.items, fileContent),
       slug,
       created_at: new Date().toISOString(),
       content
@@ -72,6 +72,20 @@ export async function searchChecklists(query: string) {
       section.some(item => item.toLowerCase().includes(lowercaseQuery))
     )
   );
+}
+
+function normalizeItems(value: unknown, content: string): string[][] {
+  if (Array.isArray(value)) {
+    const sections = value
+      .map((section) => {
+        if (Array.isArray(section)) return section.map(String);
+        if (typeof section === 'string') return section.split(/\s+-\s+/).map((item) => item.trim()).filter(Boolean);
+        return [];
+      })
+      .filter((section) => section.length > 0);
+    if (sections.length > 0) return sections;
+  }
+  return parseItems(content);
 }
 
 function parseItems(content: string): string[][] {
