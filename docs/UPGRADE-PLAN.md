@@ -33,3 +33,14 @@ MCP tools, clean type/lint, and CI; build no longer hides type errors.
 
 ## Done in this pass (pass 2)
 - `PRODUCT.md`: dropped the broken create-next-app "Source README excerpt" (its open code fence swallowed the rest of the brief); points to README/CI checks instead.
+
+## Done in this pass (pass 3)
+- Edge-case pass on `lib/checklist.ts` (regression tests in `tests/checklist.test.ts`):
+  - The run readout used `Math.round`, so 199 of 200 checks showed **100%**
+    while one check was still open (and 1 of 300 showed 0%). New
+    `progressPercent` only reads 100% when every check is clear.
+  - Markdown bodies saved with lone CR or U+2028/U+2029 line endings parsed
+    as one line with zero items.
+  - "1 of 1 checks clear" -> "1 of 1 check clear" (`checksLabel`).
+- Backlog (P2): saved progress is restored when only the section sizes match;
+  editing an item's text keeps its old tick. Key progress by item text/hash.

@@ -55,7 +55,7 @@ export function normalizeItems(value: unknown, body: string): string[][] {
 export function parseMarkdownItems(body: string): string[][] {
   const result: string[][] = [];
   let current: string[] | null = null;
-  for (const line of body.split(/\r?\n/)) {
+  for (const line of body.split(/\r\n|\r|\n|\u2028|\u2029/)) {
     const heading = line.match(/^###\s+(.+?)\s*$/);
     if (heading) {
       current = [heading[1]];
@@ -116,4 +116,20 @@ export function restoreProgress(saved: unknown, sectionSizes: readonly number[])
       Array.isArray(row) && row.length === sectionSizes[index] && row.every((value) => typeof value === "boolean"),
   );
   return valid ? (saved as boolean[][]) : null;
+}
+
+/**
+ * Whole-number completion percentage that never overstates or understates the
+ * run: 199 of 200 shows 99% (not a rounded-up 100% while one check is still
+ * open) and 1 of 300 shows 1% (not 0% after work has started).
+ */
+export function progressPercent(complete: number, total: number): number {
+  if (!Number.isFinite(complete) || !Number.isFinite(total) || total <= 0 || complete <= 0) return 0;
+  if (complete >= total) return 100;
+  return Math.min(99, Math.max(1, Math.floor((complete / total) * 100)));
+}
+
+/** "1 of 1 check clear" / "3 of 5 checks clear". */
+export function checksLabel(complete: number, total: number): string {
+  return `${complete} of ${total} ${total === 1 ? "check" : "checks"} clear`;
 }

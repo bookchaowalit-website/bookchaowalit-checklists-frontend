@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildChecklist,
+  checksLabel,
+  progressPercent,
   countChecks,
   isValidSlug,
   normalizeItems,
@@ -62,5 +64,26 @@ describe("checklist helpers", () => {
     assert.equal(restoreProgress([[true]], [2, 1]), null);
     assert.equal(restoreProgress([[true, "x"], [true]], [2, 1]), null);
     assert.equal(restoreProgress("nope", [1]), null);
+  });
+});
+
+describe("edge cases", () => {
+  it("parses markdown checklists saved with lone CR or U+2028 line endings", () => {
+    const expected = [["Before", "one", "two"]];
+    assert.deepEqual(parseMarkdownItems("### Before\r- one\r- two"), expected);
+    assert.deepEqual(parseMarkdownItems("### Before - one - two"), expected);
+  });
+
+  it("never shows 100% while a check is open, or 0% once one is done", () => {
+    assert.equal(progressPercent(199, 200), 99);
+    assert.equal(progressPercent(1, 300), 1);
+    assert.equal(progressPercent(200, 200), 100);
+    assert.equal(progressPercent(0, 0), 0);
+    assert.equal(progressPercent(Number.NaN, 5), 0);
+  });
+
+  it("pluralizes the check count", () => {
+    assert.equal(checksLabel(1, 1), "1 of 1 check clear");
+    assert.equal(checksLabel(0, 2), "0 of 2 checks clear");
   });
 });

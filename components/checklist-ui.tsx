@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { countChecks, restoreProgress, searchChecklists } from "@/lib/checklist";
+import { checksLabel, countChecks, progressPercent, restoreProgress, searchChecklists } from "@/lib/checklist";
 import type { Checklist } from "@/lib/checklist";
 import { useEffect, useMemo, useState } from "react";
 
@@ -50,13 +50,13 @@ export function ChecklistRunner({ checklist }: { checklist: Checklist }) {
 
   const total = sections.reduce((sum, section) => sum + section.length, 0);
   const complete = checked.reduce((sum, section) => sum + section.filter(Boolean).length, 0);
-  const progress = total ? Math.round((complete / total) * 100) : 0;
+  const progress = progressPercent(complete, total);
   const reset = () => setChecked(sections.map((section) => section.map(() => false)));
 
   return (
     <div className="run-sheet">
       <div className="run-readout">
-        <div><span className="panel-code">LIVE RUN / {checklist.priority.toUpperCase()}</span><strong>{progress}%</strong><span aria-live="polite">{complete} of {total} checks clear</span></div>
+        <div><span className="panel-code">LIVE RUN / {checklist.priority.toUpperCase()}</span><strong>{progress}%</strong><span aria-live="polite">{checksLabel(complete, total)}</span></div>
         <button type="button" onClick={reset}>Reset run</button>
       </div>
       <div className="progress-line" role="progressbar" aria-label={`${progress}% complete`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${progress}%` }} /></div>
