@@ -12,8 +12,6 @@ MCP tools, clean type/lint, and CI; build no longer hides type errors.
 
 ### P1
 - Confirm canonical domain; set `NEXT_PUBLIC_SITE_URL`.
-- Refresh `PRODUCT.md` (its "Source README excerpt" still quotes
-  create-next-app) with the real capabilities listed in README.
 - Render the MDX body text (currently only frontmatter/items are shown);
   `next-mdx-remote` is installed but unused — use it or drop it.
 
@@ -32,3 +30,6 @@ MCP tools, clean type/lint, and CI; build no longer hides type errors.
 - Search on the route book; per-checklist metadata; sitemap with all
   checklists; storage failures no longer throw; stable list keys.
 - CI (lint, typecheck, test, build); README rewritten.
+
+## Done in this pass (pass 2)
+- `PRODUCT.md`: dropped the broken create-next-app "Source README excerpt" (its open code fence swallowed the rest of the brief); points to README/CI checks instead.
