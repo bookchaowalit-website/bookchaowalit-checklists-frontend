@@ -44,3 +44,4 @@ MCP tools, clean type/lint, and CI; build no longer hides type errors.
   - "1 of 1 checks clear" -> "1 of 1 check clear" (`checksLabel`).
 - Backlog (P2): saved progress is restored when only the section sizes match;
   editing an item's text keeps its old tick. Key progress by item text/hash.
+- Security deps: `next` 16.1.6 -> 16.3.8 (and `eslint-config-next`) clears critical GHSA-2xp9-vwfh-vxw4 (Image Optimization RCE) plus bundled postcss/sharp highs; lockfile regenerated with same-major `npm audit fix`. `npm audit --omit=dev`: C1/H4/M2/L0 [js-yaml:h,nanoid:h,next:c,postcss:h,sharp:h] -> C0/H0/M0/L0.
