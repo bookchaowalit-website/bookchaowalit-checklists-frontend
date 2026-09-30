@@ -1,188 +1,44 @@
-import { NextRequest } from 'next/server';
-import { RuntimeException } from '@anthropic-ai/sdk/core';
+import { getAllChecklists, getChecklistBySlug, searchChecklists } from "@/lib/mdx";
+import { countChecks } from "@/lib/checklist";
+import type { Checklist } from "@/lib/checklist";
+import { ToolInputError, requireString, respondToMcpRequest } from "@/lib/mcp";
+import type { McpTool } from "@/lib/mcp";
 
-export const runtime = 'edge';
+const SERVER = { name: "bookchaowalit-checklists", version: "0.2.0" };
 
-interface MCPRequest {
-  jsonrpc: '2.0';
-  id: number | string;
-  method: string;
-  params?: any;
+function summary(checklist: Checklist) {
+  const { slug, title, category, description, priority } = checklist;
+  return { slug, title, category, description, priority, checks: countChecks(checklist) };
 }
 
-interface MCPResponse {
-  jsonrpc: '2.0';
-  id: number | string;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
+const TOOLS: McpTool[] = [
+  {
+    name: "list_checklists",
+    description: "List every checklist on the shelf, highest priority first.",
+    inputSchema: { type: "object", properties: {} },
+    handler: async () => (await getAllChecklists()).map(summary),
+  },
+  {
+    name: "get_checklist",
+    description: "Get one checklist with its phases and checks by slug (e.g. job-interview).",
+    inputSchema: { type: "object", properties: { slug: { type: "string" } }, required: ["slug"] },
+    handler: async (args) => {
+      const checklist = await getChecklistBySlug(requireString(args, "slug"));
+      if (!checklist) throw new ToolInputError("No checklist with that slug.");
+      return {
+        ...summary(checklist),
+        phases: checklist.items.map(([name, ...checks]) => ({ name, checks })),
+      };
+    },
+  },
+  {
+    name: "search_checklists",
+    description: "Search checklist titles, categories, descriptions, and individual checks.",
+    inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+    handler: async (args) => (await searchChecklists(requireString(args, "query"))).map(summary),
+  },
+];
 
-// Sample data - replace with actual data fetching
-async function getEntries(category?: string) {
-  return [
-    {
-      slug: 'sample-entry',
-      title: 'Sample Entry',
-      content: 'This is a sample entry.',
-      category: category || 'general',
-      date: new Date().toISOString()
-    }
-  ];
-}
-
-async function getEntryBySlug(slug: string) {
-  return {
-    slug,
-    title: 'Sample Entry',
-    content: 'This is a sample entry.',
-    date: new Date().toISOString()
-  };
-}
-
-async function searchEntries(query: string) {
-  return [
-    {
-      slug: 'sample-entry',
-      title: 'Sample Entry',
-      content: 'This is a sample entry.',
-      relevance: 0.95
-    }
-  ];
-}
-
-async function getCategories() {
-  return ['general', 'tutorial', 'reference'];
-}
-
-export async function POST(request: NextRequest) {
-  let requestId: number | string = 0;
-
-  try {
-    const body: MCPRequest = await request.json();
-    requestId = body.id;
-    const { method, params, id } = body;
-
-    let result: any = {};
-
-    switch (method) {
-      case 'initialize':
-        result = {
-          protocolVersion: '2024-11-05',
-          capabilities: {
-            tools: {}
-          },
-          serverInfo: {
-            name: 'MCP Server',
-            version: '1.0.0'
-          }
-        };
-        break;
-
-      case 'tools/list':
-        result = {
-          tools: [
-            {
-              name: 'get_entries',
-              description: 'Get all entries',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  category: {
-                    type: 'string',
-                    description: 'Filter by category'
-                  }
-                }
-              }
-            },
-            {
-              name: 'get_entry_by_slug',
-              description: 'Get entry by slug',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  slug: {
-                    type: 'string',
-                    description: 'Entry slug'
-                  }
-                },
-                required: ['slug']
-              }
-            },
-            {
-              name: 'search_entries',
-              description: 'Search entries',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  query: {
-                    type: 'string',
-                    description: 'Search query'
-                  }
-                },
-                required: ['query']
-              }
-            },
-            {
-              name: 'get_categories',
-              description: 'Get all categories',
-              inputSchema: {
-                type: 'object',
-                properties: {}
-              }
-            }
-          ]
-        };
-        break;
-
-      case 'tools/call':
-        const toolName = params?.name;
-        const toolArgs = params?.arguments;
-
-        switch (toolName) {
-          case 'get_entries':
-            result = await getEntries(toolArgs?.category);
-            break;
-          case 'get_entry_by_slug':
-            result = await getEntryBySlug(toolArgs?.slug);
-            break;
-          case 'search_entries':
-            result = await searchEntries(toolArgs?.query);
-            break;
-          case 'get_categories':
-            result = await getCategories();
-            break;
-          default:
-            throw new Error(`Unknown tool: ${toolName}`);
-        }
-        break;
-
-      default:
-        throw new Error(`Unknown method: ${method}`);
-    }
-
-    const response: MCPResponse = {
-      jsonrpc: '2.0',
-      id,
-      result
-    };
-
-    return Response.json(response);
-
-  } catch (error) {
-    const response: MCPResponse = {
-      jsonrpc: '2.0',
-      id: requestId,
-      error: {
-        code: -32603,
-        message: error instanceof Error ? error.message : 'Internal error',
-        data: error instanceof Error ? error.stack : undefined
-      }
-    };
-
-    return Response.json(response, { status: 500 });
-  }
+export async function POST(request: Request) {
+  return respondToMcpRequest(request, SERVER, TOOLS);
 }
