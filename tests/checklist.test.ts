@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import {
   buildChecklist,
   checksLabel,
@@ -12,7 +12,7 @@ import {
   restoreProgress,
   searchChecklists,
   sortByPriority,
-} from "../lib/checklist.ts";
+} from "@/lib/checklist";
 
 describe("checklist parsing", () => {
   it("splits YAML-folded sections into [title, ...items]", () => {
